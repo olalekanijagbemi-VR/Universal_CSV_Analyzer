@@ -1279,4 +1279,6 @@ document.getElementById('bgNext').addEventListener('click', () => setBg(bgIndex 
 
 if __name__ == "__main__":
     ensure_background_images()
-    app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 5001)))
+    port = int(os.environ.get("PORT", 5001))
+    print(f"🌐 Server starting on port {port}")
+    app.run(host="0.0.0.0", port=port, debug=False)
