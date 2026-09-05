@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal CSV Analyzer | Liquid Glass</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        :root {
+            --bg-image: url('/static/images/bg1.jpg');
+            --glass-bg: rgba(51,33,80,0.50);
+            --glass-border: rgba(227,15,15,0.15);
+            --blur:0px;
+            --frost:0;
+            --saturation:1.0;
+            --tint: rgba(51,33,80,0.50);
+            --bevel:6px;
+            --specular:1;
+            --depth:80px;
+            --radius:40px;
+            --contrast:1.60;
+            --brightness:1.40;
+            --white-text:#ffffff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: var(--bg-image);
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            padding: 20px;
+            transition: background 0.5s ease;
+        }
+
+        .dashboard-container {
+            width: 100%;
+            max-width: 1400px;
+            height: 95vh;
+            background: var(--tint);
+            backdrop-filter: blur(var(--blur)) saturate(var(--saturation));
+            -webkit-backdrop-filter: blur(var(--blur)) saturate(var(--saturation));
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius);
+            box-shadow: 0 calc(var(--depth)*0.3) calc(var(--depth)) rgba(0,0,0,0.35),
+                        0 calc(var(--depth)*0.08) calc(var(--depth)*0.4) rgba(0,0,0,0.22),
+                        inset var(--bevel) var(--bevel) calc(var(--bevel)*3) rgba(255,255,255,0.55),
+                        inset calc(var(--bevel)*-1) calc(var(--bevel)*-1) calc(var(--bevel)*3) rgba(0,0,0,0.28);
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+            filter: contrast(var(--contrast)) brightness(var(--brightness));
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 20px;
+            border-bottom: 2px solid rgba(156, 8, 241, 0.941);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #fbbf24;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        .header h1 i { color: #fbbf24; }
+        .header-actions { display: flex; gap: 15px; align-items: center; }
+        .header-actions span { color: var(--white-text); opacity: 1; }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 30px;
+            flex: 1;
+            padding-top: 20px;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            height: 100%;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .glass-card {
+            background: linear-gradient(135deg, var(--tint), rgba(255,255,255, calc(var(--frost) * 1.5)));
+            backdrop-filter: blur(var(--blur)) saturate(var(--saturation));
+            -webkit-backdrop-filter: blur(var(--blur)) saturate(var(--saturation));
+            border: 1px solid var(--glass-border);
+            border-radius: calc(var(--radius) - 4px);
+            padding: 20px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1), inset 0 0 20px rgba(255,255,255, calc(var(--specular)*0.2));
+            transition: transform 0.3s, box-shadow 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-4px) scale(1.01);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2), 0 0 30px rgba(59,130,246,0.25), 0 0 60px rgba(6,182,212,0.15);
+        }
+
+        .card-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: rgba(144,219,140,0.866);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+            opacity: 1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .slider-group { margin-bottom: 15px; }
+        .slider-group label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: rgba(119,224,131,0.942);
+            margin-bottom: 6px;
+            opacity: 1;
+        }
+
+        .liquid-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 8px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.1);
+            outline: none;
+        }
+
+        .liquid-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #8c4ec2, #6fa48e);
+            cursor: pointer;
+            margin-top: -7px;
+            border: 2px solid rgba(255,255,255,0.8);
+        }
+
+        .toggle-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .toggle-label {
+            font-size: 13px;
+            color: rgba(90,165,249,0.946);
+            opacity: 1;
+        }
+
+        .gel-toggle {
+            position: relative;
+            width: 50px;
+            height: 28px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50px;
+            cursor: pointer;
+            transition: 0.4s;
+        }
+
+        .gel-toggle.active {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+
+        .gel-toggle .knob {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #bceb3bf4, #2273d5);
+            transition: 0.4s;
+        }
+
+        .gel-toggle.active .knob {
+            left: 25px;
+            background: radial-gradient(circle at 30% 30%, #fef08a, #f59e0b);
+        }
+
+        .gel-btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 16px;
+            background: linear-gradient(135deg, rgba(59,130,246,0.4), rgba(6,182,212,0.4));
+            color: #fff;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: 0.3s;
+            margin-top: 10px;
+        }
+
+        .gel-btn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 6px 20px rgba(59,130,246,0.4), 0 0 20px rgba(59,130,246,0.3);
+        }
+
+        .content-area {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        .upload-zone {
+            width: 100%;
+            height: 150px;
+            border: 2px dashed rgba(255,255,255,0.3);
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: rgba(255,255,255,0.05);
+        }
+
+        .upload-zone:hover {
+            border-color: rgba(59,130,246,0.6);
+            background: rgba(59,130,246,0.1);
+            box-shadow: 0 0 30px rgba(59,130,246,0.3);
+        }
+
+        .upload-zone i { font-size: 40px; color: rgba(255,255,255,0.7); }
+        .upload-zone p { color: rgba(255,255,255,0.6); font-size: 14px; }
+        .upload-zone span { color: rgba(255,255,255,0.4); font-size: 12px; }
+
+        .stat-cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+
+        .stat-card {
+            text-align: center;
+            padding: 15px;
+        }
+
+        .stat-card .stat-label {
+            font-size: 12px;
+            opacity: 0.7;
+            color: var(--white-text);
+            margin-bottom: 5px;
+        }
+
+        .stat-card .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--white-text);
+        }
+
+        .select-styled {
+            width: 100%;
+            padding: 12px;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: var(--white-text);
+            font-weight: 500;
+            outline: none;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .select-styled option {
+            background: #1a1a2e;
+            color: white;
+        }
+
+        .chart-placeholder {
+            width: 100%;
+            height: 100%;
+            min-height: 300px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: rgba(255,255,255,0.5);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .chart-placeholder img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            padding: 10px;
+        }
+
+        .chart-placeholder i { font-size: 40px; margin-bottom: 10px; }
+        .chart-placeholder p { font-size: 14px; }
+
+        .data-table-container {
+            width: 100%;
+            height: 200px;
+            overflow: auto;
+            padding: 10px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 12px;
+            color: var(--white-text);
+            font-size: 12px;
+        }
+
+        .data-table-container table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table-container th, .data-table-container td {
+            padding: 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        .data-table-container th {
+            background: rgba(255,255,255,0.1);
+            font-weight: 600;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .info-item {
+            padding: 10px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            font-size: 12px;
+        }
+
+        .info-item .info-label {
+            color: rgba(255,255,255,0.5);
+            margin-bottom: 4px;
+        }
+
+        .info-item .info-value {
+            color: var(--white-text);
+            font-weight: 600;
+        }
+
+        .bg-switcher {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(15,23,42,0.8);
+            backdrop-filter: blur(20px);
+            padding: 10px 20px;
+            border-radius: 50px;
+            border: 1px solid rgba(255,255,255,0.1);
+            z-index: 100;
+            cursor: pointer;
+        }
+
+        .bg-btn {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: #fff;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .bg-count {
+            color: rgba(255,255,255,0.8);
+            font-size: 13px;
+            font-weight: 600;
+            min-width: 80px;
+            text-align: center;
+        }
+
+        .shader-toggle-btn {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(15,23,42,0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 50px;
+            padding: 8px 16px;
+            cursor: pointer;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 200;
+            transition: all 0.3s;
+        }
+
+        .shader-toggle-btn:hover {
+            background: rgba(59,130,246,0.3);
+        }
+
+        .shader-panel {
+            position: absolute;
+            bottom: 80px;
+            right: 20px;
+            width: 280px;
+            max-height: calc(90vh - 120px);
+            background: rgba(15,23,42,0.95);
+            backdrop-filter: blur(30px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 15px;
+            z-index: 150;
+            overflow-y: auto;
+            transform: translateX(320px);
+            transition: transform 0.3s;
+            color: #fff;
+        }
+
+        .shader-panel.open { transform: translateX(0); }
+
+        .shader-section {
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .shader-section-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: rgba(255,255,255,0.4);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .shader-slider-group { margin-bottom: 10px; }
+        .shader-slider-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 5px;
+        }
+
+        .shader-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 5px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.1);
+            outline: none;
+        }
+
+        .shader-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #fff, #a78bfa);
+            cursor: pointer;
+            margin-top: -5.5px;
+        }
+
+        .shader-color-input {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .text-color-presets {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .text-color-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.2);
+            cursor: pointer;
+        }
+
+        .shader-reset-btn {
+            width: 100%;
+            padding: 8px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.12);
+            color: rgba(255,255,255,0.6);
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .white-text { color: var(--white-text); }
+        select { color: var(--white-text) !important; opacity: 1; }
+
+        @media (max-width: 1024px) {
+            .main-grid { grid-template-columns: 1fr; }
+            .sidebar { max-height: 300px; }
+            .content-area { height: auto; }
+            .stat-cards { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="header">
+            <h1><i class="fas fa-chart-line"></i> Universal CSV Analyzer</h1>
+            <div class="header-actions">
+                <span class="white-text" style="font-size:12px;opacity:1"><i class="fas fa-circle" style="color:#2d05e1;font-size:8px"></i> System Online</span>
+            </div>
+        </div>
+
+        <div class="main-grid">
+            <div class="sidebar">
+                <div class="glass-card">
+                    <div class="card-title"><i class="fas fa-upload"></i> Data Upload</div>
+                    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>Drag & Drop or Click to Upload</p>
+                        <span>Only CSV files supported</span>
+                    </div>
+                    <input type="file" id="fileInput" accept=".csv" style="display:none" onchange="handleFileUpload(this)">
+                    <div id="uploadStatus" style="text-align:center;font-size:12px;color:var(--white-text);margin-top:10px"></div>
+                </div>
+
+                <div class="glass-card" id="configCard" style="display:none">
+                    <div class="card-title"><i class="fas fa-sliders-h"></i> Configuration</div>
+                    <label style="font-size:12px;color:rgba(255,255,255,0.7);display:block;margin-bottom:5px">Target Column (What to Predict)</label>
+                    <select class="select-styled" id="targetCol"></select>
+                    
+                    <label style="font-size:12px;color:rgba(255,255,255,0.7);display:block;margin-bottom:5px">Model Type</label>
+                    <select class="select-styled" id="modelType"></select>
+
+                    <label style="font-size:12px;color:rgba(255,255,255,0.7);display:block;margin-bottom:5px">Model Name</label>
+                    <select class="select-styled" id="modelName"></select>
+
+                    <div class="slider-group" id="hyperparams" style="display:none">
+                        <label>Max Depth <span id="val-depth-ml">5</span></label>
+                        <input type="range" class="liquid-slider" id="slider-depth" min="1" max="20" step="1" value="5" oninput="document.getElementById('val-depth-ml').textContent=this.value">
+                    </div>
+
+                    <button class="gel-btn" id="trainBtn" onclick="trainModel()"><i class="fas fa-play" style="margin-right:8px"></i> Train Model</button>
+                    <div id="trainStatus" style="text-align:center;font-size:12px;color:var(--white-text);margin-top:10px;display:none">Training...</div>
+                </div>
+            </div>
+
+            <div class="content-area">
+                <div class="stat-cards">
+                    <div class="glass-card stat-card">
+                        <div class="stat-label">Rows</div>
+                        <div class="stat-value" id="stat-rows">--</div>
+                    </div>
+                    <div class="glass-card stat-card">
+                        <div class="stat-label">Columns</div>
+                        <div class="stat-value" id="stat-cols">--</div>
+                    </div>
+                    <div class="glass-card stat-card">
+                        <div class="stat-label">Missing</div>
+                        <div class="stat-value" id="stat-missing">--</div>
+                    </div>
+                    <div class="glass-card stat-card">
+                        <div class="stat-label">Samples</div>
+                        <div class="stat-value" id="stat-samples">--</div>
+                    </div>
+                </div>
+
+                <div class="glass-card" id="dataPreviewCard" style="display:none">
+                    <div class="card-title"><i class="fas fa-database"></i> Raw Data Preview</div>
+                    <div id="dataPreview" class="data-table-container"></div>
+                </div>
+
+                <div class="glass-card chart-card" id="chartCard" style="display:none">
+                    <div class="card-title"><i class="fas fa-chart-line"></i> Results</div>
+                    <div class="chart-placeholder" id="results-container">
+                        <i class="fas fa-chart-bar"></i>
+                        <p>Upload data and train a model to see results</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-switcher">
+            <span style="font-size:11px;color:rgba(255,255,255,0.6);margin-right:4px">Background:</span>
+            <button class="bg-btn" onclick="prevBg()"><i class="fas fa-chevron-left"></i></button>
+            <span class="bg-count" id="bgCount">1 / 7</span>
+            <button class="bg-btn" onclick="nextBg()"><i class="fas fa-chevron-right"></i></button>
+        </div>
+
+        <div class="shader-toggle-btn" onclick="toggleShaderPanel()">
+            <i class="fas fa-sliders-h"></i>
+            <span>Shader Panel</span>
+        </div>
+
+        <div class="shader-panel" id="shaderPanel">
+            <div style="font-size:14px;font-weight:700;margin-bottom:5px">Liquid Glass Shader</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:15px">Real-time adjustments</div>
+
+            <div class="shader-section">
+                <div class="shader-section-title">Surface</div>
+                <div class="shader-slider-group"><div class="shader-slider-label">Blur <span id="val-blur">0px</span></div><input type="range" class="shader-slider" min="0" max="60" value="0" oninput="setShaderVar('--blur',this.value+'px','val-blur',this.value+'px')"></div>
+                <div class="shader-slider-group"><div class="shader-slider-label">Frostiness <span id="val-frost">0%</span></div><input type="range" class="shader-slider" min="0" max="60" value="0" oninput="setShaderVar('--frost',this.value/100,'val-frost',this.value+'%')"></div>
+                <div class="shader-slider-group"><div class="shader-slider-label">Saturation <span id="val-sat">1.0×</span></div><input type="range" class="shader-slider" min="0.5" max="4" step="0.1" value="1.0" oninput="setShaderVar('--saturation',this.value,'val-sat',parseFloat(this.value).toFixed(1)+'×')"></div>
+            </div>
+
+            <div class="shader-section">
+                <div class="shader-section-title">Light & Edge</div>
+                <div class="shader-color-row"><input type="color" class="shader-color-input" id="tintColor" value="#332150" oninput="updateTint(this.value)"><div style="flex:1"><div class="shader-slider-label">Tint Alpha <span id="val-tint-alpha">50%</span></div><input type="range" class="shader-slider" min="0" max="60" value="50" oninput="updateTintAlpha(this.value)"></div></div>
+                <div class="shader-slider-group"><div class="shader-slider-label">Bevel <span id="val-bevel">6px</span></div><input type="range" class="shader-slider" min="0" max="6" step="0.5" value="6" oninput="setShaderVar('--bevel',this.value+'px','val-bevel',this.value+'px')"></div>
+                <div class="shader-slider-group"><div class="shader-slider-label">Specular <span id="val-spec">100%</span></div><input type="range" class="shader-slider" min="0" max="100" value="100" oninput="setShaderVar('--specular',this.value/100,'val-spec',this.value+'%')"></div>
+            </div>
+
+            <div class="shader-section">
+                <div class="shader-section-title">Shape & Space</div>
+                <div class="shader-slider-group"><div class="shader-slider-label">3D Depth <span id="val-depth">80px</span></div><input type="range" class="shader-slider" min="0" max="80" step="2" value="80" oninput="setShaderVar('--depth',this.value+'px','val-depth',this.value+'px')"></div>
+                <div class="shader-slider-group"><div class="shader-slider-label">Radius <span id="val-radius">40px</span></div><input type="range" class="shader-slider" min="0" max="40" value="40" oninput="setShaderVar('--radius',this.value+'px','val-radius',this.value+'px')"></div>
+            </div>
+
+            <div class="shader-section">
+                <div class="shader-section-title">Color Adjustments</div>
+                <div class="shader-slider-group"><div class="shader-slider-label">Contrast <span id="val-contrast">1.60×</span></div><input type="range" class="shader-slider" min="0.5" max="2" step="0.05" value="1.60" oninput="setShaderVar('--contrast',this.value,'val-contrast',parseFloat(this.value).toFixed(2)+'×')"></div>
+                <div class="shader-slider-group"><div class="shader-slider-label">Brightness <span id="val-brightness">1.40×</span></div><input type="range" class="shader-slider" min="0.5" max="2" step="0.05" value="1.40" oninput="setShaderVar('--brightness',this.value,'val-brightness',parseFloat(this.value).toFixed(2)+'×')"></div>
+            </div>
+
+            <div class="shader-section">
+                <div class="shader-section-title">Text Color</div>
+                <div class="shader-color-row"><input type="color" class="shader-color-input" id="textColorPicker" value="#ffffff" oninput="setWhiteTextColor(this.value)"><div style="flex:1;font-size:11px;color:rgba(255,255,255,0.5)">Pick custom color</div></div>
+                <div class="text-color-presets">
+                    <div class="text-color-btn" style="background:#fff" onclick="setWhiteTextColor('#ffffff')" title="White"></div>
+                    <div class="text-color-btn" style="background:#000" onclick="setWhiteTextColor('#000000')" title="Black"></div>
+                    <div class="text-color-btn" style="background:#3b82f6" onclick="setWhiteTextColor('#3b82f6')" title="Blue"></div>
+                    <div class="text-color-btn" style="background:#ef4444" onclick="setWhiteTextColor('#ef4444')" title="Red"></div>
+                    <div class="text-color-btn" style="background:#eab308" onclick="setWhiteTextColor('#eab308')" title="Yellow"></div>
+                    <div class="text-color-btn" style="background:#22c55e" onclick="setWhiteTextColor('#22c55e')" title="Green"></div>
+                </div>
+            </div>
+
+            <button class="shader-reset-btn" onclick="resetShader()">↺ Reset All Defaults</button>
+        </div>
+    </div>
+
+    <script>
+        const backgrounds = [
+            'url("/static/images/bg1.jpg")',
+            'url("/static/images/bg2.jpg")',
+            'url("/static/images/bg3.jpg")',
+            'url("/static/images/bg4.jpg")',
+            'url("/static/images/bg5.jpg")',
+            'url("/static/images/bg6.jpg")',
+            'url("/static/images/bg7.jpg")'
+        ];
+        let currentBgIndex = 0;
+        function applyBackground(i) {
+            document.body.style.backgroundImage = backgrounds[i];
+            document.getElementById('bgCount').textContent = (i + 1) + ' / ' + backgrounds.length;
+        }
+        function nextBg() {
+            currentBgIndex = (currentBgIndex + 1) % backgrounds.length;
+            applyBackground(currentBgIndex);
+        }
+        function prevBg() {
+            currentBgIndex = (currentBgIndex - 1 + backgrounds.length) % backgrounds.length;
+            applyBackground(currentBgIndex);
+        }
+        applyBackground(0);
+
+        const root = document.documentElement;
+        function setShaderVar(p, v, l, lv) {
+            root.style.setProperty(p, v);
+            document.getElementById(l).textContent = lv;
+        }
+        function toggleShaderPanel() {
+            document.getElementById('shaderPanel').classList.toggle('open');
+        }
+        let tintColor = '#332150', tintAlpha = 50;
+        function updateTint(c) {
+            tintColor = c;
+            applyTint();
+        }
+        function updateTintAlpha(a) {
+            tintAlpha = a;
+            document.getElementById('val-tint-alpha').textContent = a + '%';
+            applyTint();
+        }
+        function applyTint() {
+            const r = parseInt(tintColor.slice(1, 3), 16), g = parseInt(tintColor.slice(3, 5), 16), b = parseInt(tintColor.slice(5, 7), 16), a = tintAlpha / 100;
+            root.style.setProperty('--tint', `rgba(${r},${g},${b},${a})`);
+        }
+        function setWhiteTextColor(c) {
+            root.style.setProperty('--white-text', c);
+            document.getElementById('textColorPicker').value = c;
+        }
+        function resetShader() {
+            const D = {
+                '--blur': '0px', '--frost': 0, '--saturation': 1.0,
+                '--tint': 'rgba(51,33,80,0.50)', '--bevel': '6px', '--specular': 1,
+                '--depth': '80px', '--radius': '40px', '--contrast': 1.60,
+                '--brightness': 1.40, '--white-text': '#ffffff'
+            };
+            Object.entries(D).forEach(([k, v]) => root.style.setProperty(k, v));
+            document.getElementById('tintColor').value = '#332150';
+            tintColor = '#332150';
+            tintAlpha = 50;
+            document.getElementById('textColorPicker').value = '#ffffff';
+        }
+
+        let csvData = null;
+
+        function handleFileUpload(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const formData = new FormData();
+            formData.append('file', file);
+            const status = document.getElementById('uploadStatus');
+            status.textContent = 'Uploading...';
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    csvData = data;
+                    status.textContent = '✅ Uploaded: ' + data.filename;
+                    document.getElementById('configCard').style.display = 'block';
+                    document.getElementById('dataPreviewCard').style.display = 'block';
+                    document.getElementById('stat-rows').textContent = data.row_count.toLocaleString();
+                    document.getElementById('stat-cols').textContent = data.col_count;
+                    document.getElementById('stat-missing').textContent = Object.values(data.missing).reduce((a, b) => a + b, 0);
+                    document.getElementById('stat-samples').textContent = data.row_count.toLocaleString();
+                    document.getElementById('dataPreview').innerHTML = data.preview_html;
+
+                    // Populate target column select
+                    const targetCol = document.getElementById('targetCol');
+                    targetCol.innerHTML = '';
+                    data.columns.forEach(col => {
+                        const opt = document.createElement('option');
+                        opt.value = col;
+                        opt.textContent = col;
+                        targetCol.appendChild(opt);
+                    });
+
+                    // Populate model type select
+                    const modelType = document.getElementById('modelType');
+                    modelType.innerHTML = '';
+                    const classificationOpt = document.createElement('option');
+                    classificationOpt.value = 'classification';
+                    classificationOpt.textContent = 'Classification';
+                    modelType.appendChild(classificationOpt);
+                    const regressionOpt = document.createElement('option');
+                    regressionOpt.value = 'regression';
+                    regressionOpt.textContent = 'Regression';
+                    modelType.appendChild(regressionOpt);
+                } else {
+                    status.textContent = '❌ Error: ' + data.error;
+                }
+            })
+            .catch(error => {
+                status.textContent = '❌ Error: ' + error;
+            });
+        }
+
+        document.getElementById('modelType').addEventListener('change', function() {
+            const modelName = document.getElementById('modelName');
+            modelName.innerHTML = '';
+            if (this.value === 'classification') {
+                const models = ['Random Forest', 'Logistic Regression', 'SVM'];
+                models.forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m;
+                    opt.textContent = m;
+                    modelName.appendChild(opt);
+                });
+            } else {
+                const models = ['Random Forest', 'Linear Regression'];
+                models.forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m;
+                    opt.textContent = m;
+                    modelName.appendChild(opt);
+                });
+            }
+            document.getElementById('hyperparams').style.display = 'block';
+        });
+
+        function trainModel() {
+            if (!csvData) return;
+            const params = {
+                n_estimators: 100,
+                max_depth: parseInt(document.getElementById('slider-depth').value),
+                C: 1.0,
+                max_iter: 100
+            };
+            const data = {
+                target_col: document.getElementById('targetCol').value,
+                model_type: document.getElementById('modelType').value,
+                model_name: document.getElementById('modelName').value,
+                params: params
+            };
+            const status = document.getElementById('trainStatus');
+            status.style.display = 'block';
+            status.textContent = 'Training...';
+
+            fetch('/train', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                document.getElementById('chartCard').style.display = 'block';
+                const container = document.getElementById('results-container');
+                if (result.type === 'classification') {
+                    container.innerHTML = `
+                        <div style="text-align:center;margin-bottom:20px;color:var(--white-text)">
+                            <h3>Classification Results</h3>
+                            <p style="font-size:14px;margin-top:10px">Accuracy: <strong style="color:#34d399">${(result.accuracy * 100).toFixed(1)}%</strong></p>
+                            <p style="font-size:14px">Precision: <strong style="color:#60a5fa">${(result.precision * 100).toFixed(1)}%</strong></p>
+                            <p style="font-size:14px">Recall: <strong style="color:#f472b6">${(result.recall * 100).toFixed(1)}%</strong></p>
+                        </div>
+                        <div style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap">
+                            <div>
+                                <p style="text-align:center;color:var(--white-text);font-size:12px;margin-bottom:5px">Confusion Matrix</p>
+                                <img src="${result.confusion_matrix_image}" style="max-width:250px;border-radius:8px">
+                            </div>
+                            ${result.roc_image ? `<div><p style="text-align:center;color:var(--white-text);font-size:12px;margin-bottom:5px">ROC Curve</p><img src="${result.roc_image}" style="max-width:250px;border-radius:8px"></div>` : ''}
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = `
+                        <div style="text-align:center;margin-bottom:20px;color:var(--white-text)">
+                            <h3>Regression Results</h3>
+                            <p style="font-size:14px;margin-top:10px">R² Score: <strong style="color:#34d399">${result.r2}</strong></p>
+                            <p style="font-size:14px">MSE: <strong style="color:#60a5fa">${result.mse}</strong></p>
+                            <p style="font-size:14px">MAE: <strong style="color:#f472b6">${result.mae}</strong></p>
+                        </div>
+                        <div style="text-align:center">
+                            <p style="text-align:center;color:var(--white-text);font-size:12px;margin-bottom:5px">Actual vs Predicted</p>
+                            <img src="${result.scatter_image}" style="max-width:300px;border-radius:8px">
+                        </div>
+                    `;
+                }
+                status.textContent = '✅ Training complete!';
+                setTimeout(() => { status.style.display = 'none'; }, 2000);
+            })
+            .catch(error => {
+                status.textContent = '❌ Error: ' + error;
+            });
+        }
+    </script>
+</body>
+</html>
