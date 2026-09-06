@@ -122,8 +122,19 @@ Choose Free instance type
 
 Click "Deploy Web Service"
 
-📸 Screenshots
-(Add screenshots of your app here!)
+## 📸 Screenshots
+
+### Main Dashboard (Liquid Metal UI)
+![Main Dashboard](screenshots/dashboard.png)
+
+### Dataset Summary & Upload
+![Dataset Summary](screenshots/summary.png)
+
+### Training Results (Confusion Matrix & Feature Importance)
+![Training Results](screenshots/results.png)
+
+### Shader Panel (Customizable Liquid Glass Controls)
+![Shader Panel](screenshots/shader_panel.png)
 
 🎯 Use Cases
 Data Scientists: Quickly prototype ML models on any dataset
